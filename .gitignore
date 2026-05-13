@@ -434,3 +434,6 @@ data/data.npz
 model/callback_model.keras
 model/Xception_finetuned.keras
 data/
+src/model/Xception_augmented_finetuned.keras
+src/model/Xception_augmented.keras
+src/model/Xception_finetuned.keras
