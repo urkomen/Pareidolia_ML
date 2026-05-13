@@ -30,13 +30,15 @@ data/
 
 ```
 1. src/notebooks/01_data_preparation.ipynb
-   → Carga, normaliza y guarda datos en .npz
+   → Carga, normaliza y guarda datos en data/data.npz
 
 2. src/notebooks/02_model_comparison.ipynb
    → Compara 3 arquitecturas (EfficientNet, ResNet, Xception)
+   → Genera: src/model/Xception.keras
 
-3. src/notebooks/03_fine_tuning.ipynb
-   → Mejora el mejor modelo con fine-tuning
+3. src/notebooks/03_enhance_models.ipynb
+   → Fine-tuning, data augmentation y combinaciones
+   → Genera: Xception_finetuned.keras, Xception_augmented.keras, Xception_augmented_finetuned.keras
 
 4. src/notebooks/04_predictions.ipynb
    → Valida en dataset de test
@@ -44,25 +46,46 @@ data/
 
 ## 💡 Ejemplo Rápido
 
+### Opción 1: Usar modelo preentrenado (más rápido)
+
+```python
+import tensorflow as tf
+from src.utils import predict_single_image, batch_predict
+
+# Cargar modelo recomendado
+model = tf.keras.models.load_model('src/model/Xception_augmented_finetuned.keras')
+
+# Predicción en una imagen
+result = predict_single_image(model, 'ruta/imagen.jpg')
+print(f"Probabilidad de pareidolia: {result:.2%}")
+
+# Predicciones en lote
+image_paths = ['img1.jpg', 'img2.jpg', 'img3.jpg']
+results = batch_predict(model, image_paths)
+```
+
+### Opción 2: Entrenar desde cero (completo)
+
 ```python
 import sys
 sys.path.append('src')
 
 from utils import (
-    load_and_prepare_data,
+    load_data_npz,
     build_xception,
     train_model,
     evaluate_model
 )
 
-# 1. Cargar datos
-X_train, X_test, y_train, y_test = load_and_prepare_data()
+# 1. Cargar datos (usa cache si existe)
+X_train, y_train, X_test, y_test = load_data_npz('data/data.npz')
 
 # 2. Construir modelo
 model = build_xception()
 
 # 3. Entrenar
-history = train_model(model, X_train, y_train, epochs=30)
+history = train_model(model, X_train, y_train, 
+                      validation_split=0.15, epochs=30)
 
 # 4. Evaluar
 results = evaluate_model(model, X_test, y_test, model_name="Xception")
@@ -70,26 +93,34 @@ results = evaluate_model(model, X_test, y_test, model_name="Xception")
 
 ## 📁 Archivos Importantes
 
+### Modelos Entrenados (src/model/)
+
+- **`Xception.keras`** - Modelo base (baseline)
+- **`Xception_finetuned.keras`** - Con fine-tuning
+- **`Xception_augmented.keras`** - Con data augmentation
+- **`Xception_augmented_finetuned.keras`** - ⭐ Recomendado para producción
+
 ### Módulos (src/utils/)
 
-- `constants.py` - Configuración
-- `data_loader.py` - Carga de datos
-- `model_builder.py` - Construcción de modelos
-- `training.py` - Entrenamiento
-- `evaluation.py` - Evaluación
-- `prediction.py` - Predicciones
+- `constants.py` - Configuración centralizada
+- `data_loader.py` - Carga y preprocesamiento de datos
+- `model_builder.py` - Construcción de arquitecturas
+- `training.py` - Funciones de entrenamiento
+- `evaluation.py` - Evaluación y métricas
+- `prediction.py` - Predicciones en imágenes
 
 ### Notebooks (src/notebooks/)
 
-- `01_data_preparation.ipynb`
-- `02_model_comparison.ipynb`
-- `03_fine_tuning.ipynb`
-- `04_predictions.ipynb`
+- `01_data_preparation.ipynb` - Preparación de datos
+- `02_model_comparison.ipynb` - Comparativa de modelos
+- `03_enhance_models.ipynb` - Fine-tuning y augmentation
+- `04_predictions.ipynb` - Evaluación final y Grad-CAM
 
 ### Documentación
 
-- `src/memoria.ipynb` - Resumen del proyecto
-- `src/README.md` - Documentación técnica
+- `memoria.ipynb` - Resumen del proyecto
+- `Pareidolia.md` - Documentación técnica completa
+- `README.md` - Información general
 
 ## ⚙️ Personalización
 
@@ -133,4 +164,4 @@ print("GPUs disponibles:", len(tf.config.list_physical_devices('GPU')))
 
 ## 🚀 Siguiente Paso
 
-Consulta `src/memoria.ipynb` para un resumen completo del proyecto.
+Consulta `memoria.ipynb` para un resumen completo del proyecto, o `Pareidolia.md` para la documentación técnica detallada.

@@ -23,20 +23,35 @@ El dataset fue recopilado manualmente a partir de diferentes fuentes de internet
 
 El dataset presenta un cierto desbalanceo entre clases (aproximadamente 37% / 63%), lo que fue tenido en cuenta en fases posteriores de entrenamiento. Sin embargo, también se asemeja con la realidad donde no vemos caras en todos los objetos todo el rato, sino ocasionadamente.
 
-
 ### Nomenclatura y estructura de ficheros
 
 Las imágenes fueron renombradas con una nomenclatura estandarizada mediante funciones propias (`renombrar_imagenes_cara`, `renombrar_imagenes_sincara`), que aplican el formato `cara_XXX.ext` y `sin-cara_XXX.ext` respectivamente, con comprobaciones previas para evitar colisiones en caso de ejecuciones múltiples. En una tercera carpeta 'predictions' añadimos alguna foto par poner a prueba los modelos entrenados. La estructura de directorios quedó organizada en:
 
 ```
-data/
-├── train/
-│   ├── cara/
-│   └── sin-cara/
-├── test/
-│   ├── cara/
-│   └── sin-cara/
-└── predictions/
+Pareidolia_ML/
+├── data/
+│   ├── train/
+│   │   ├── cara/
+│   │   └── sin-cara/
+│   ├── test/
+│   │   ├── cara/
+│   │   └── sin-cara/
+│   ├── predictions/
+│   │   └── grad_cam/
+│   ├── data.npz              # Datos normalizados
+│   ├── data_gray.npz         # Datos en escala de grises
+│   └── data_aug.npz          # Datos aumentados
+├── src/
+│   ├── utils/                # Módulos reutilizables
+│   ├── model/                # Modelos entrenados
+│   │   ├── Xception.keras
+│   │   ├── Xception_finetuned.keras
+│   │   ├── Xception_augmented.keras
+│   │   ├── Xception_augmented_finetuned.keras
+│   │   └── production/
+│   └── notebooks/
+└── resources/
+    └── img/
 ```
 
 ### Análisis exploratorio (EDA)
@@ -122,14 +137,14 @@ Esto duplicó el número de imágenes `sin-cara` en el conjunto de entrenamiento
 
 Se entrenó un modelo final combinando ambas mejoras siguiendo el orden correcto: primero entrenar la cabeza con backbone congelado usando el dataset aumentado, y posteriormente aplicar fine-tuning sobre las últimas capas. Este orden es crítico para evitar que gradientes grandes procedentes de una cabeza con pesos aleatorios dañen los pesos preentrenados del backbone.
 
-Los cuatro modelos comparados en la fase final fueron:
+Los cuatro modelos entrenados y guardados en `src/model/` fueron:
 
-| Modelo                           | Descripción                               |
-| -------------------------------- | ------------------------------------------ |
-| Xception base (escala de grises) | Backbone congelado, imágenes en gris      |
-| Xception finetuned               | Fine-tuning de las últimas 25 capas       |
-| Xception augmented               | Dataset aumentado con sin-cara sintéticas |
-| Xception aug + finetuned         | Combinación de augmentation y fine-tuning |
+| Modelo                   | Archivo                                | Descripción                             |
+| ------------------------ | -------------------------------------- | ---------------------------------------- |
+| Xception base            | `Xception.keras`                     | Backbone congelado                       |
+| Xception finetuned       | `Xception_finetuned.keras`           | Fine-tuning de últimas 25 capas         |
+| Xception augmented       | `Xception_augmented.keras`           | Dataset aumentado para clase minoritaria |
+| Xception aug + finetuned | `Xception_augmented_finetuned.keras` | Mejor rendimiento ✓ Recomendado         |
 
 ### 4.5 Grad-CAM
 
@@ -140,7 +155,7 @@ Se implementó Gradient-weighted Class Activation Mapping (Grad-CAM) para visual
 3. Ponderar los mapas de activación por el gradiente medio de cada canal.
 4. Redimensionar el heatmap resultante y superponerlo sobre la imagen original.
 
-Las visualizaciones Grad-CAM confirmaron que el modelo focaliza su atención en las regiones que el ojo humano también identifica como evocadoras de un rostro, validando cualitativamente el aprendizaje de la red.
+Las visualizaciones Grad-CAM confirmaron que el modelo tiende a focalizar su atención en las regiones que el ojo humano también identifica como evocadoras de un rostro, aunque haya imágenes confusas donde no parece tener claro qué y dónde buscar.
 
 ---
 
@@ -148,9 +163,9 @@ Las visualizaciones Grad-CAM confirmaron que el modelo focaliza su atención en 
 
 ### Resultados
 
-La comparativa final entre los cuatro modelos entrenados sobre imágenes en escala de grises con Xception mostró que la combinación de augmentation y fine-tuning produjo el mejor rendimiento global, medido por AUC-ROC sobre el conjunto de test.
+La comparativa final entre los cuatro modelos Xception mostró que la combinación de augmentation y fine-tuning (`Xception_augmented_finetuned.keras`) produjo el mejor rendimiento global (aunque la mejora no es tan significativa), medido por AUC-ROC sobre el conjunto de test. Este modelo se recomienda para predicciones en producción.
 
-El análisis de la distribución de probabilidades predichas reveló que el modelo es altamente confiante en sus decisiones: la mayoría de las predicciones se concentran cerca de 0 o cerca de 1, con muy pocas predicciones en la zona de incertidumbre (0.3–0.7). Esto indica que el modelo aprendió representaciones discriminativas sólidas para la tarea.
+El análisis de la distribución de probabilidades predichas reveló que el modelo es altamente confiante en sus decisiones: la mayoría de las predicciones se concentran cerca de 0 o cerca de 1, con muy pocas predicciones en la zona de incertidumbre (0.3–0.7). Esto indica que el modelo aprendió representaciones discriminativas para la tarea.
 
 ### Conclusiones
 
@@ -160,8 +175,51 @@ El análisis de la distribución de probabilidades predichas reveló que el mode
 
 **La escala de grises no penaliza el rendimiento.** Eliminar la información de color y trabajar únicamente con luminancia no degradó significativamente la capacidad del modelo, lo que confirma que la tarea depende principalmente de la estructura espacial de las imágenes, no del color.
 
-**El augmentation selectivo sobre la clase minoritaria es efectivo.** Aplicar transformaciones sintéticas únicamente sobre `sin-cara` ayudó a equilibrar el dataset sin introducir ruido artificial en la clase de interés.
+**El augmentation selectivo sobre la clase minoritaria es algo efectivo.** Aplicar transformaciones sintéticas únicamente sobre `sin-cara` ayudó a equilibrar el dataset sin introducir ruido artificial en la clase de interés.
 
-**El orden en el fine-tuning es crítico.** Entrenar primero la cabeza con backbone congelado y aplicar fine-tuning en una segunda fase con learning rate bajo es esencial para preservar los pesos preentrenados y obtener mejoras reales de rendimiento.
+**El orden en el fine-tuning mejora, pero menos de lo esperado.** Entrenar primero la cabeza con backbone congelado y aplicar fine-tuning en una segunda fase con learning rate bajo es esencial para preservar los pesos preentrenados y obtener mejoras reales de rendimiento.
 
-**Grad-CAM valida cualitativamente el modelo.** Las regiones de alta activación coinciden con las zonas que el observador humano identifica como evocadoras de un rostro, lo que aporta interpretabilidad y confianza en las predicciones del modelo.
+**Grad-CAM ayuda a entender lo que busca el modelo.** Las regiones de alta activación coinciden la mayoría de veces con las zonas que el observador humano identifica como evocadoras de un rostro. Es cierto que no siempre entiende que en esa zona hay una cara, pero aporta interpretabilidad y de algún modo un poco de confianza en las predicciones del modelo.
+
+---
+
+## 6. Reproducibilidad y documentación
+
+### Notebooks de experimentación
+
+Todo el pipeline está documentado en notebooks Jupyter interactivos bajo `src/notebooks/`:
+
+- **`01_data_preparation.ipynb`** - Carga, preprocesamiento y serialización a `.npz`
+- **`02_model_comparison.ipynb`** - Comparativa de backbones (EfficientNetB0, ResNet50, Xception)
+- **`03_enhance_models.ipynb`** - Fine-tuning, data augmentation y combinaciones
+- **`04_predictions.ipynb`** - Evaluación final, predicciones y Grad-CAM
+
+### Módulos reutilizables en `src/utils/`
+
+```python
+from src.utils import (
+    load_data_npz,
+    build_xception,
+    predict_single_image,
+    batch_predict,
+    evaluate_model
+)
+
+# Cargar modelo recomendado de producción
+import tensorflow as tf
+model = tf.keras.models.load_model('src/model/Xception_augmented_finetuned.keras')
+
+# Predicción en una imagen
+result = predict_single_image(model, 'ruta/imagen.jpg')
+
+# Predicciones en lote
+batch_results = batch_predict(model, image_paths)
+```
+
+### Instalación y requisitos
+
+```bash
+pip install -r requirements.txt
+```
+
+Requisitos: TensorFlow >= 2.10, Numpy, Pandas, Matplotlib, Scikit-learn, OpenCV.

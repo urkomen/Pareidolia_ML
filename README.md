@@ -7,33 +7,51 @@ Este proyecto implementa un clasificador de imágenes para detectar pareidolia (
 ## 📋 Estructura de Carpetas
 
 ```
-src/
-├── utils/                          # Módulos reutilizables
-│   ├── __init__.py                # Inicialización del paquete
-│   ├── constants.py               # Configuración y constantes
-│   ├── data_loader.py             # Carga y procesamiento de datos
-│   ├── model_builder.py           # Construcción de modelos
-│   ├── training.py                # Funciones de entrenamiento
-│   ├── evaluation.py              # Evaluación y visualización
-│   └── prediction.py              # Predicciones e inferencia
+Pareidolia_ML/
+├── data/                           # Datasets
+│   ├── train/                      # Imágenes de entrenamiento
+│   │   ├── cara/
+│   │   └── sin-cara/
+│   ├── test/                       # Imágenes de test
+│   │   ├── cara/
+│   │   └── sin-cara/
+│   ├── predictions/                # Predicciones y visualizaciones
+│   │   └── grad_cam/
+│   ├── data.npz                    # Datos normalizados (comprimido)
+│   ├── data_gray.npz               # Datos en escala de grises
+│   └── data_aug.npz                # Datos aumentados
 │
-├── data/                           # Datasets procesados
-│   ├── data.npz                   # Datos normalizados (formato comprimido)
-│   └── data_gray.npz              # Datos en escala de grises (alternativa)
+├── src/
+│   ├── utils/                      # Módulos reutilizables
+│   │   ├── __init__.py
+│   │   ├── constants.py            # Configuración y constantes
+│   │   ├── data_loader.py          # Carga y procesamiento
+│   │   ├── model_builder.py        # Construcción de modelos
+│   │   ├── training.py             # Funciones de entrenamiento
+│   │   ├── evaluation.py           # Evaluación y visualización
+│   │   └── prediction.py           # Predicciones e inferencia
+│   │
+│   ├── model/                      # Modelos entrenados
+│   │   ├── Xception.keras          # Modelo base
+│   │   ├── Xception_finetuned.keras
+│   │   ├── Xception_augmented.keras
+│   │   ├── Xception_augmented_finetuned.keras  # ⭐ Recomendado
+│   │   └── production/             # Modelos para producción
+│   │
+│   └── notebooks/                  # Notebooks ejecutables
+│       ├── 01_data_preparation.ipynb
+│       ├── 02_model_comparison.ipynb
+│       ├── 03_enhance_models.ipynb
+│       └── 04_predictions.ipynb
 │
-├── notebooks/                      # Notebooks ejecutables
-│   ├── 01_data_preparation.ipynb  # Carga y preparación de datos
-│   ├── 02_model_comparison.ipynb  # Comparación de arquitecturas
-│   ├── 03_fine_tuning.ipynb       # Fine-tuning del mejor modelo
-│   └── 04_predictions.ipynb       # Predicciones y validación
+├── resources/
+│   └── img/                        # Imágenes y recursos visuales
 │
-├── model/                          # Modelos entrenados
-│   ├── production/                # Modelo final para producción
-│   │   └── best_model.keras       # Modelo optimizado
-│   └── *.keras                    # Modelos experimentales
-│
-├── memoria.ipynb                   # Documentación del proyecto
-└── README.md                       # Este archivo
+├── memoria.ipynb                   # Resumen del proyecto
+├── Pareidolia.md                   # Documentación técnica
+├── QUICKSTART.md                   # Guía de inicio rápido
+├── README.md                       # Este archivo
+└── requirements.txt
 ```
 
 ## 🚀 Cómo Usar
@@ -47,27 +65,52 @@ pip install -r requirements.txt
 ### 2. Ejecutar notebooks en orden
 
 ```bash
-# Orden recomendado:
-jupyter notebook notebooks/01_data_preparation.ipynb
-jupyter notebook notebooks/02_model_comparison.ipynb
-jupyter notebook notebooks/03_fine_tuning.ipynb
-jupyter notebook notebooks/04_predictions.ipynb
+# Ubicación: src/notebooks/
+
+# 1. Preparación de datos
+jupyter notebook src/notebooks/01_data_preparation.ipynb
+
+# 2. Comparación de modelos
+jupyter notebook src/notebooks/02_model_comparison.ipynb
+odelo preentrenado
+
+```python
+import tensorflow as tf
+from src.utils import predict_single_image, batch_predict
+
+# Cargar modelo recomendado de producción
+model = tf.keras.models.load_model('src/model/Xception_augmented_finetuned.keras')
+
+# Predicción en una imagen
+result = predict_single_image(model, 'ruta/imagen.jpg')
+print(f"Probabilidad de pareidolia: {result:.2%}")
+
+# Predicciones en lote
+image_paths = ['img1.jpg', 'img2.jpg', 'img3.jpg']
+batch_results = batch_predict(model, image_paths)
 ```
 
-### 3. Usar módulos en tu código
+### 4. Usar módulos en tu código
 
 ```python
 import sys
-sys.path.append('../../src')
+sys.path.append('src')
 
 from utils import (
-    load_and_prepare_data,
+    load_data_npz,
     build_xception,
     train_model,
-    evaluate_model,
-    predict_and_visualize
+    evaluate_model
 )
 
+# Cargar datos
+X_train, y_train, X_test, y_test = load_data_npz('data/data.npz')
+
+# Construir modelo
+model = build_xception()
+
+# Entrenar
+history = train_model(model, X_train, y_train, epochs=30
 # Cargar datos
 X_train, X_test, y_train, y_test = load_and_prepare_data()
 
@@ -84,11 +127,13 @@ results = evaluate_model(model, X_test, y_test)
 ## 📦 Módulos Disponibles
 
 ### `constants.py`
+
 - Configuración centralizada
 - Rutas de proyecto
 - Hiperparámetros
 
 ### `data_loader.py`
+
 - `read_data()` - Carga imágenes desde carpeta
 - `load_and_prepare_data()` - Pipeline completo
 - `save_data_npz()` - Guardar en formato comprimido
@@ -96,18 +141,22 @@ results = evaluate_model(model, X_test, y_test)
 - `preprocess_image()` - Preprocesar imagen individual
 
 ### `model_builder.py`
+
 - `build_model()` - Constructor genérico
 - `build_efficient_net_b0()` - EfficientNet
-- `build_resnet50()` - ResNet50
-- `build_xception()` - Xception (mejor modelo)
-- `unfreeze_backbone_layers()` - Para fine-tuning
+- `build_resnet50()` - ResNet50 individual
+- `batch_predict()` - Predicciones en lote
+- `visualize_predictions()` - Grilla de resultados
+- `get_predictions_summary()` - Estadísticas agregad
 
 ### `training.py`
+
 - `train_model()` - Entrenamiento estándar
 - `train_model_custom()` - Con validation set personalizado
 - `train_with_augmentation()` - Con data augmentation
 
 ### `evaluation.py`
+
 - `evaluate_model()` - Evaluación completa
 - `plot_confusion_matrix()` - Matriz de confusión
 - `plot_learning_curves()` - Curvas de aprendizaje
@@ -115,23 +164,28 @@ results = evaluate_model(model, X_test, y_test)
 - `find_optimal_threshold()` - Búsqueda de threshold
 
 ### `prediction.py`
+
 - `predict_single_image()` - Predicción en imagen
 - `batch_predict()` - Predicciones en lote
 - `visualize_predictions()` - Grilla de resultados
 - `get_predictions_summary()` - Estadísticas
 
-## 📊 Resultados del Proyecto
+## 📊 Modelos Disponibles
 
-| Modelo | Accuracy | AUC-ROC | Entrada |
-|--------|----------|---------|---------|
-| EfficientNetB0 | [Insertar] | [Insertar] | 224×224 |
-| ResNet50 | [Insertar] | [Insertar] | 224×224 |
-| **Xception** | **[Insertar]** | **[Insertar]** | **299×299** |
-| Xception Fine-tuned | **[Insertar]** | **[Insertar]** | **299×299** |
+| Modelo                    | Archivo                                          | Descripción                | Recomendado  |
+| ------------------------- | ------------------------------------------------ | --------------------------- | ------------ |
+| Xception Base             | `Xception.keras`                               | Backbone congelado          | -            |
+| Xception Fine-tuned       | `Xception_finetuned.keras`                     | Con fine-tuning             | -            |
+| Xception Augmented        | `Xception_augmented.keras`                     | Con data augmentation       | -            |
+| **Xception Aug+FT** | **`Xception_augmented_finetuned.keras`** | **Mejor rendimiento** | **✓** |
 
-## 📝 Documentación
+Todos los modelos: Disponible
 
-Consulta `memoria.ipynb` para:
+- **`memoria.ipynb`** - Resumen del proyecto, arquitectura y resultados
+- **`Pareidolia.md`** - Documentación técnica completa con análisis detallado
+- **`QUICKSTART.md`** - Guía de inicio rápido con ejemplos
+- **`README.md`** - Este archivo
+  Consulta `memoria.ipynb` para:
 - Descripción completa del proyecto
 - Detalles de cada paso
 - Código de ejemplo
@@ -140,47 +194,50 @@ Consulta `memoria.ipynb` para:
 ## 🔧 Configuración
 
 Editar `utils/constants.py` para personalizar:
-- Dimensiones de imagen
-- Rutas de datos
-- Hiperparámetros de entrenamiento
-- Parámetros de fine-tuning
+
+- Dimenssrc/utils/constants.py` para personalizar:
+- `IMAGE_WIDTH`, `IMAGE_HEIGHT` - Dimensiones de entrada (para Xception: 299×299)
+- `BATCH_SIZE`, `EPOCHS` - Parámetros de entrenamiento
+- `TRAIN_PATH`, `TEST_PATH` - Rutas a datos
+- Modelos y hiperparámetros adicionales
 
 ## 🎯 Uso en Producción
 
 ```python
 import tensorflow as tf
 from utils import predict_and_visualize
+src.utils import predict_single_image
 
-# Cargar modelo
-model = tf.keras.models.load_model('model/production/best_model.keras')
+# Cargar modelo recomendado
+model = tf.keras.models.load_model('src/model/Xception_augmented_finetuned.keras')
 
-# Predecir
-result = predict_and_visualize(
-    model,
-    'ruta/a/imagen.jpg',
-    size=(299, 299),
-    threshold=0.5
-)
+# Predicción
+probability = predict_single_image(model, 'ruta/imagen.jpg')
 
-print(f"Predicción: {result['label']}")
-print(f"Confianza: {result['confidence']:.2%}")
-```
+# Resultado
+threshold = 0.5
+label = 'cara (pareidolia)' if probability > threshold else 'sin-cara'
+confidence = max(probability, 1 - probability)
+
+print(f"Predicción: {label}")
+print(f"Confianza: {confidence
 
 ## 📚 Referencias
 
 - [Keras Transfer Learning](https://keras.io/guides/transfer_learning/)
+- [Xception: Deep Learning Guide](https://keras.io/guides/transfer_learning/)
 - [Xception: Deep Learning with Depthwise Separable Convolutions](https://arxiv.org/abs/1610.02357)
-- [EfficientNet: Rethinking Model Scaling](https://arxiv.org/abs/1905.11946)
-- [ResNet: Deep Residual Learning](https://arxiv.org/abs/1512.03385)
-
-## ⚖️ Licencia
-
-[Especificar licencia]
+- [EfficientNet: Rethinking Model Scaling for Convolutional Neural Networks](https://arxiv.org/abs/1905.11946)
+- [ResNet: Deep Residual Learning for Image Recognition](https://arxiv.org/abs/1512.03385)
+- [Data Augmentation with TensorFlow](https://www.tensorflow.org/tutorials/images/data_augmentation
 
 ## 👤 Autor
 
-[Tu nombre/información]
+Urko Menendez
 
 ---
-
+Para empezar rápidamente:** consulta [QUICKSTART.md](QUICKSTART.md)  
+**Para documentación técnica:** consulta [Pareidolia.md](Pareidolia.md)  
+**Para resumen del proyecto:** abre [memoria.ipynb](memoria.ipynb)
 **Nota:** Para preservar el notebook original `modelo.ipynb`, se ha extraído todo el código a módulos reutilizables en `utils/` y notebooks organizados en `notebooks/`.
+```
