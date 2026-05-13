@@ -433,3 +433,4 @@ data/data_gray.npz
 data/data.npz
 model/callback_model.keras
 model/Xception_finetuned.keras
+data/
