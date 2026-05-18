@@ -430,6 +430,7 @@ FodyWeavers.xsd
 
 # Files
 data/data_gray.npz
+data/data_aug.npz
 data/data.npz
 model/callback_model.keras
 model/Xception_finetuned.keras
@@ -438,5 +439,5 @@ src/model/Xception_augmented.keras
 src/model/Xception_finetuned.keras
 
 # Directories
-data/
+#data/
 resources/
