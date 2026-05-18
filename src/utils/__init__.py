@@ -3,6 +3,19 @@ Módulo utils - Funciones auxiliares para el proyecto Pareidolia ML
 """
 
 from .constants import *
+from .analysis import (
+    renombrar_imagenes_cara,
+    renombrar_imagenes_sincara,
+    renombrar_predicciones,
+    list_images,
+    sample_images,
+    load_pil,
+    analyze_sizes,
+    mean_color,
+    show_random_by_class,
+    symmetry_score,
+    find_outliers
+)
 from .data_loader import (
     read_data,
     load_and_prepare_data,
