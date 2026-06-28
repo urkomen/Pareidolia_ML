@@ -223,7 +223,7 @@ def predicciones(model, path = PREDICT_PATH):
             
             filename = f'{file}'
             
-            img, label, confianza, color = predecir_cara(model, path + filename, size=(299, 299))
+            img, label, confianza, color = predecir_cara(model, os.path.join(path, filename), size=(299, 299))
             
             # filepath = os.path.join(path, filename)
             # img = cv2.imread(filepath)
