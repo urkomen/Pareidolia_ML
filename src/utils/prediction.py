@@ -243,7 +243,7 @@ def predicciones(model, path = PREDICT_PATH):
             # Superponer
             result = overlay_heatmap(heatmap, img_rgb)
 
-            cv.imwrite(GRADCAM_PATH + 'gradcam_' + filename, result)
+            cv.imwrite(os.path.join(GRADCAM_PATH, 'gradcam_' + filename), result)
             
             # Mostrar imagen
             plt.figure(figsize=(10, 5))
@@ -264,19 +264,17 @@ def predicciones(model, path = PREDICT_PATH):
 
 
 
-# Hay que retocar el filename, por ahora no funciona bien
 def prediccion(model, path):
     '''
-    Predicción de una imagen
+    Predicción de una imagen con Grad-CAM
     '''
-    
+
+    filename = os.path.basename(path)
+
     img, label, confianza, color = predecir_cara(model, path, size=(299, 299))
-    
-    # filepath = os.path.join(path, filename)
-    # img = cv2.imread(filepath)
-    
+
     img_rgb = cv.cvtColor(np.array(img), cv.COLOR_BGR2RGB)
-    img_resized = cv.resize(img_rgb, (IMAGE_WIDTH, IMAGE_HEIGHT))
+    img_resized = cv.resize(img_rgb, (IMAGE_WIDTH_XC, IMAGE_HEIGHT_XC))
     img_array = img_resized / 255.0
     img_array = np.expand_dims(img_array, axis=0)
 
@@ -290,7 +288,7 @@ def prediccion(model, path):
     # Superponer
     result = overlay_heatmap(heatmap, img_rgb)
 
-    cv.imwrite(PREDICT_PATH + 'gradcam_' + filename, result)
+    cv.imwrite(os.path.join(PREDICT_PATH, 'gradcam_' + filename), result)
     
     # Mostrar imagen
     plt.figure(figsize=(10, 5))
