@@ -1,167 +1,108 @@
-# Guía de Inicio Rápido - Pareidolia ML
+# Guía de Inicio Rápido — Pareidolia ML
 
-## 🎯 Objetivo
-
-Este proyecto implementa un clasificador de pareidolia (ilusión óptica de caras) usando Transfer Learning.
-
-## 📋 Pasos Iniciales
-
-### 1. Asegúrate de tener las dependencias
+## 1. Instalar dependencias
 
 ```bash
-pip install tensorflow pandas numpy scikit-learn matplotlib pillow
+pip install -r requirements.txt
 ```
 
-### 2. Estructura de datos esperada
+## 2. Lanzar la app web
 
-El proyecto asume que tienes imágenes en:
+La forma más rápida de usar el proyecto:
 
-```
-data/
-├── train/
-│   ├── cara/       # Imágenes con pareidolia
-│   └── sin-cara/   # Imágenes sin pareidolia
-└── test/
-    ├── cara/
-    └── sin-cara/
+```bash
+streamlit run src/utils/streamlit.py
 ```
 
-### 3. Orden de ejecución
+Abre el navegador en `http://localhost:8501`. Desde la página **Home** puedes leer
+qué es la pareidolia y acceder al detector con un clic.
 
-```
-1. src/notebooks/01_data_preparation.ipynb
-   → Carga, normaliza y guarda datos en data/data.npz
+En la página de **Predicción**:
 
-2. src/notebooks/02_model_comparison.ipynb
-   → Compara 3 arquitecturas (EfficientNet, ResNet, Xception)
-   → Genera: src/model/Xception.keras
+1. Sube una imagen (JPG/PNG) o usa la cámara web
+2. Selecciona el modelo en la barra lateral *(recomendado: Augmented + Fine-tuned)*
+3. Ajusta el umbral si es necesario (por defecto 0.5)
+4. Pulsa **Ejecutar predicción**
 
-3. src/notebooks/03_enhance_models.ipynb
-   → Fine-tuning, data augmentation y combinaciones
-   → Genera: Xception_finetuned.keras, Xception_augmented.keras, Xception_augmented_finetuned.keras
-
-4. src/notebooks/04_predictions.ipynb
-   → Valida en dataset de test
-```
-
-## 💡 Ejemplo Rápido
-
-### Opción 1: Usar modelo preentrenado (más rápido)
+## 3. Usar el modelo desde código
 
 ```python
 import tensorflow as tf
-from src.utils import predict_single_image, batch_predict
+from src.utils import predict_single_image
 
-# Cargar modelo recomendado
-model = tf.keras.models.load_model('src/model/Xception_augmented_finetuned.keras')
+# Cargar modelo de producción
+model = tf.keras.models.load_model('src/model/production/Xception_augmented_finetuned.keras')
 
 # Predicción en una imagen
-result = predict_single_image(model, 'ruta/imagen.jpg')
-print(f"Probabilidad de pareidolia: {result:.2%}")
+result = predict_single_image(model, 'ruta/imagen.jpg', size=(299, 299))
+print(f"Predicción: {result['label']}")
+print(f"Confianza:  {result['confidence']:.2%}")
 
 # Predicciones en lote
-image_paths = ['img1.jpg', 'img2.jpg', 'img3.jpg']
-results = batch_predict(model, image_paths)
+from src.utils import batch_predict
+results = batch_predict(model, ['img1.jpg', 'img2.jpg'], size=(299, 299))
 ```
 
-### Opción 2: Entrenar desde cero (completo)
+## 4. Entrenar desde cero
+
+Ejecuta los notebooks en orden desde `src/notebooks/`:
+
+```
+01_data_preparation.ipynb   → Carga y serializa datos en data/data.npz
+02_model_comparison.ipynb   → Compara EfficientNet, ResNet50 y Xception
+03_enhance_models.ipynb     → Fine-tuning, augmentation y combinaciones
+04_predictions.ipynb        → Evaluación final y Grad-CAM
+```
+
+O desde código:
 
 ```python
-import sys
-sys.path.append('src')
+from src.utils import load_data_npz, build_xception, train_model, evaluate_model
 
-from utils import (
-    load_data_npz,
-    build_xception,
-    train_model,
-    evaluate_model
-)
-
-# 1. Cargar datos (usa cache si existe)
 X_train, y_train, X_test, y_test = load_data_npz('data/data.npz')
-
-# 2. Construir modelo
 model = build_xception()
-
-# 3. Entrenar
-history = train_model(model, X_train, y_train, 
-                      validation_split=0.15, epochs=30)
-
-# 4. Evaluar
-results = evaluate_model(model, X_test, y_test, model_name="Xception")
+history = train_model(model, X_train, y_train, validation_split=0.15, epochs=30)
+results = evaluate_model(model, X_test, y_test)
 ```
 
-## 📁 Archivos Importantes
+## Archivos clave
 
-### Modelos Entrenados (src/model/)
+| Ruta                                                        | Descripción                                       |
+| ----------------------------------------------------------- | -------------------------------------------------- |
+| `src/model/production/Xception_augmented_finetuned.keras` | Modelo recomendado                                 |
+| `src/utils/streamlit.py`                                  | App web — Home                                    |
+| `src/utils/pages/1_Prediccion.py`                         | App web — Detector                                |
+| `src/utils/constants.py`                                  | Configuración (rutas, tamaños, hiperparámetros) |
+| `memoria.ipynb`                                           | Resumen del proyecto y resultados                  |
+| `Pareidolia.md`                                           | Documentación técnica completa                   |
 
-- **`Xception.keras`** - Modelo base (baseline)
-- **`Xception_finetuned.keras`** - Con fine-tuning
-- **`Xception_augmented.keras`** - Con data augmentation
-- **`Xception_augmented_finetuned.keras`** - ⭐ Recomendado para producción
-
-### Módulos (src/utils/)
-
-- `constants.py` - Configuración centralizada
-- `data_loader.py` - Carga y preprocesamiento de datos
-- `model_builder.py` - Construcción de arquitecturas
-- `training.py` - Funciones de entrenamiento
-- `evaluation.py` - Evaluación y métricas
-- `prediction.py` - Predicciones en imágenes
-
-### Notebooks (src/notebooks/)
-
-- `01_data_preparation.ipynb` - Preparación de datos
-- `02_model_comparison.ipynb` - Comparativa de modelos
-- `03_enhance_models.ipynb` - Fine-tuning y augmentation
-- `04_predictions.ipynb` - Evaluación final y Grad-CAM
-
-### Documentación
-
-- `memoria.ipynb` - Resumen del proyecto
-- `Pareidolia.md` - Documentación técnica completa
-- `README.md` - Información general
-
-## ⚙️ Personalización
+## Personalización
 
 Edita `src/utils/constants.py` para cambiar:
 
-- `IMAGE_WIDTH`, `IMAGE_HEIGHT` - Tamaño de entrada
-- `BATCH_SIZE`, `EPOCHS` - Parámetros de entrenamiento
-- `FINETUNE_LAYERS`, `FINETUNE_LR` - Parámetros de fine-tuning
+- `IMAGE_WIDTH_XC`, `IMAGE_HEIGHT_XC` — tamaño de entrada para Xception (299×299)
+- `BATCH_SIZE`, `EPOCHS` — parámetros de entrenamiento
+- `PREDICTION_THRESHOLD` — umbral por defecto de clasificación
+- `TRAIN_PATH`, `TEST_PATH` — rutas al dataset
 
-## 🔍 Troubleshooting
+## Troubleshooting
 
-### Error: "Módulo no encontrado"
+**Módulo no encontrado**
 
-```python
-# Asegúrate de añadir src al path
-import sys
-sys.path.append('path/to/src')
+```bash
+# Ejecuta siempre desde la raíz del proyecto
+cd Pareidolia_ML
+streamlit run src/utils/streamlit.py
 ```
 
-### Error: "Datos no encontrados"
+**GPU no disponible**
 
 ```python
-# Verifica que la estructura de carpetas sea correcta:
-# data/train/cara/, data/train/sin-cara/
-# data/test/cara/, data/test/sin-cara/
-```
-
-### GPU no disponible
-
-```python
-# El proyecto funcionará en CPU también, pero será más lento
 import tensorflow as tf
 print("GPUs disponibles:", len(tf.config.list_physical_devices('GPU')))
+# El proyecto funciona en CPU también, pero más lento
 ```
 
-## 📊 Espacio Requerido
-
-- **Datos sin procesar:** ~[Insertar size] MB
-- **Archivo .npz comprimido:** ~[Insertar size] MB
-- **Modelos entrenados:** ~[Insertar size] MB
-
-## 🚀 Siguiente Paso
-
-Consulta `memoria.ipynb` para un resumen completo del proyecto, o `Pareidolia.md` para la documentación técnica detallada.
+**Error en Grad-CAM**
+Asegúrate de usar el modelo Xception — la capa `block14_sepconv2_act` es específica
+de esa arquitectura y no existe en EfficientNet ni ResNet.
