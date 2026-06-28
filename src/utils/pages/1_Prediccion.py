@@ -18,7 +18,7 @@ MODEL_DIR = Path(__file__).parent.parent.parent / 'model'
 TARGET_SIZE = (299, 299)
 
 MODEL_OPTIONS = {
-    'Xception (Augmented + Fine-tuned) — Recomendado': MODEL_DIR / 'Xception_augmented_finetuned.keras',
+    'Xception (Augmented + Fine-tuned) — Recomendado': MODEL_DIR / 'production' / 'Xception_augmented_finetuned.keras',
     'Xception (Augmented)': MODEL_DIR / 'Xception_augmented.keras',
     'Xception (Fine-tuned)': MODEL_DIR / 'Xception_finetuned.keras',
     'Xception (Original)': MODEL_DIR / 'Xception.keras',
